@@ -3,13 +3,12 @@ from collections import defaultdict
 
 
 class Dyna2Agent:
-    perm_lambda = 1
-    trans_lambda = 1
-    epsilon = 0.2
+    perm_lambda = 0.8
+    trans_lambda = 0.8
+    epsilon = 0.1
 
-    def __init__(self, n_steps, num_actions, get_legal_actions):
+    def __init__(self, get_legal_actions):
         self.get_legal_actions = get_legal_actions
-        self.num_actions = num_actions # TODO: not sure about it
         # Memory (theta)
         self._permanentParameters = defaultdict(lambda: defaultdict(lambda: 0))
         self._transientParameters = defaultdict(lambda: defaultdict(lambda: 0))
@@ -21,24 +20,24 @@ class Dyna2Agent:
         self.states = defaultdict(lambda: defaultdict(lambda: 0))
         self.dones = defaultdict(lambda: defaultdict(lambda: 0))
 
-        self.n_steps = n_steps
-
     def get_qvalue(self, state, action, mem_type):
         if mem_type == 'permanent':
             return self._permanentParameters[state][action]
         else:
             return self._transientParameters[state][action] + self._permanentParameters[state][action]
 
-    def play(self, env):
+    def play(self, env, t_max=10**4):
         done = False
         state = env.reset()
         self._transientParameters = defaultdict(lambda: defaultdict(lambda: 0))
         self._permET = defaultdict(lambda: defaultdict(lambda: 0))
-
+        total_reward = 0
+        t = 0
         self.search(state)
         action = self.get_action(state, 'transient')
-        while not done:
+        while not done or t > t_max:
             new_state, reward, done, _ = env.step(action)
+            total_reward += reward
             self.update_model(state, action, reward, new_state, done)
             self.search(new_state)
             new_action = self.get_action(new_state, 'transient')
@@ -56,6 +55,8 @@ class Dyna2Agent:
 
             state = new_state
             action = new_action
+            t += 1
+        return total_reward
 
     def search(self, state):
         done = False
@@ -92,9 +93,9 @@ class Dyna2Agent:
 
     def learning_rate(self, state, action, mem_type):
         if mem_type == 'permanent':
-            return 0.01 # TODO : change learning rate using state and action
+            return 0.1  # TODO : change learning rate using state and action
         else:
-            return 0.01 # TODO : change learning rate using state and action
+            return 0.1  # TODO : change learning rate using state and action
 
     def get_best_action(self, state, mem_type):
         possible_actions = self.get_legal_actions(state)
