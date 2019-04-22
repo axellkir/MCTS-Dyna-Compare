@@ -1,5 +1,5 @@
 from collections import defaultdict
-from taxi_env import TaxiEnv
+from envs.taxi_env import TaxiEnv
 import random
 from math import sqrt, log
 

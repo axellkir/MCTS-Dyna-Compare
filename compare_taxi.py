@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import DataFrame
-from dyna_q import DynaQAgent
-from uct import UCTAgent
-from qlearning import QLearningAgent
-from taxi_env import TaxiEnv
+from agents.dyna_q import DynaQAgent
+from agents.uct import UCTAgent
+from agents.qlearning import QLearningAgent
+from envs.taxi_env import TaxiEnv
 
 env = TaxiEnv(1)
 n_actions = env.action_space.n
