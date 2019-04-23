@@ -5,11 +5,8 @@ from copy import deepcopy
 
 
 class Dyna2Agent:
-    perm_lambda = 0.8
-    trans_lambda = 0.8
-    epsilon = 0.1
-
-    def __init__(self, get_legal_actions, is_array=False):
+    def __init__(self, get_legal_actions, epsilon=0.1, perm_lambda=1, trans_lambda=1,
+                 learning_rate=0.5, is_array=False):
         self.get_legal_actions = get_legal_actions
         # Memory (theta)
         self._permanentParameters = defaultdict(lambda: defaultdict(lambda: 0))
@@ -24,6 +21,11 @@ class Dyna2Agent:
 
         self.is_array = is_array
         self.states = {}
+
+        self.lr = learning_rate
+        self.perm_lambda = perm_lambda
+        self.trans_lambda = trans_lambda
+        self.epsilon = epsilon
 
     def array_to_int(self, state):
         if self.is_array:
@@ -53,13 +55,12 @@ class Dyna2Agent:
         while not done or t > t_max:
             new_state, reward, done, _ = env.step(action)
             new_state = self.array_to_int(new_state)
-            print(new_state)
             total_reward += reward
             self.update_model(state, action, reward, new_state, done)
             self.search(new_state)
             new_action = self.get_action(new_state, 'transient')
             delta = reward + self.get_qvalue(new_state, new_action, 'permanent') \
-                           - self.get_qvalue(state, action, 'permanent')
+                    - self.get_qvalue(state, action, 'permanent')
             for s in self._permanentParameters.keys():
                 for a in self._permanentParameters[s].keys():
                     self._permanentParameters[s][a] = self._permanentParameters[s][a] \
@@ -110,9 +111,9 @@ class Dyna2Agent:
 
     def learning_rate(self, state, action, mem_type):
         if mem_type == 'permanent':
-            return 0.8  # TODO : change learning rate using state and action
+            return self.lr  # TODO : change learning rate using state and action
         else:
-            return 0.8  # TODO : change learning rate using state and action
+            return self.lr  # TODO : change learning rate using state and action
 
     def get_best_action(self, state, mem_type):
         possible_actions = self.get_legal_actions(state)
