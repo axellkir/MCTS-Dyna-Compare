@@ -56,6 +56,19 @@ class QLearningAgent:
 
         return value
 
+    def play(self, env, t_max=10**4):
+        total_reward = 0.0
+        state = env.reset()
+        for t in range(t_max):
+            a = self.get_action(state)
+            next_state, r, done, _ = env.step(a)
+            self.update(state, a, r, next_state)
+            state = next_state
+            total_reward += r
+            if done:
+                break
+        return total_reward
+
     def update(self, state, action, reward, next_state):
         """
         You should do your Q-Value update here:
