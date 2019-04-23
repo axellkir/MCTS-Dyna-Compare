@@ -2,6 +2,7 @@ from collections import defaultdict
 import random
 from math import sqrt, log
 import numpy as np
+from copy import deepcopy
 
 
 class Node:
@@ -39,7 +40,7 @@ def check_state_in_children_act(node, action):
 
 class UCTAgent:
     def __init__(self, get_legal_actions, save=None, restore=None, copy=None,
-                 is_copy=True, rollouts=20, horizon=100, gamma=0.9, ucb_const=3):
+                 is_copy=True, rollouts=10, horizon=120, gamma=0.9, ucb_const=2):
         random.seed(42)
         self.get_legal_actions = get_legal_actions
         self.rollouts = rollouts
@@ -56,13 +57,13 @@ class UCTAgent:
         self.restore = restore
 
     def set_root(self, state):
-        root = Node(state)
+        root = Node(state=deepcopy(state))
         root.visits = 1
         self.root = root
         self.temp_root = root
 
     def new_node(self, state, parent, action):
-        node = Node(state=state, parent=parent, action=action)
+        node = Node(state=deepcopy(state), parent=parent, action=action)
         assert action not in parent.children.keys(), 'Not new NODE'
         parent.children[action] = node
         return node
@@ -119,7 +120,7 @@ class UCTAgent:
                 return node, total_reward, done, t
             else:
                 node = child
-                assert child.state == state, 'Wrong state!'
+        #                 assert np.array_equal(child.state, state), 'Wrong state!'
         return node, total_reward, done, t
 
     def sim_default(self, env, state, total_reward, done, t):
