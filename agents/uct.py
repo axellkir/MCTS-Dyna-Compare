@@ -1,7 +1,7 @@
 from collections import defaultdict
-from envs.taxi_env import TaxiEnv
 import random
 from math import sqrt, log
+import numpy as np
 
 
 class Node:
@@ -24,7 +24,7 @@ class Node:
 
 def check_state_in_children(node, state):
     for child in node.children.values():
-        if child.state == state:
+        if np.array_equal(child.state, state):
             return True, child
     return False, 0
 
@@ -38,7 +38,8 @@ def check_state_in_children_act(node, action):
 
 
 class UCTAgent:
-    def __init__(self, get_legal_actions, rollouts=20, horizon=100, gamma=0.9, ucb_const=3):
+    def __init__(self, get_legal_actions, save=None, restore=None, copy=None,
+                 is_copy=True, rollouts=20, horizon=100, gamma=0.9, ucb_const=3):
         random.seed(42)
         self.get_legal_actions = get_legal_actions
         self.rollouts = rollouts
@@ -48,7 +49,11 @@ class UCTAgent:
         self.time = 0
         self.root = None
         self.temp_root = None
-        print("Initialized")
+
+        self.is_copy = is_copy
+        self.copy = copy
+        self.save = save
+        self.restore = restore
 
     def set_root(self, state):
         root = Node(state)
@@ -62,11 +67,17 @@ class UCTAgent:
         parent.children[action] = node
         return node
 
-    def get_action(self):
+    def get_action(self, env):
         root_node = self.temp_root
         root_node.is_root = True
-        for _ in range(self.rollouts):
-            self.simulate(TaxiEnv(root_node.state), root_node)
+        if self.is_copy:
+            for _ in range(self.rollouts):
+                self.simulate(self.copy(env), root_node)
+        else:
+            self.save(env)
+            for _ in range(self.rollouts):
+                self.simulate(env, root_node)
+                self.restore(env)
         root_node.is_root = False
         action = self.ucb_select(root_node)
         return action
@@ -77,7 +88,7 @@ class UCTAgent:
         env.reset()
         self.temp_root = self.root
         for t in range(t_max):
-            a = self.get_action()
+            a = self.get_action(env)
             s, r, done, _ = env.step(a)
             is_in, child = check_state_in_children(self.temp_root, s)
             assert is_in, "Child not found!!!"
@@ -137,7 +148,7 @@ class UCTAgent:
         possible_actions = self.get_legal_actions(node.state)
         c = self.ucb
         array_qvalues = {
-                action: node.qvalues[action] + c * sqrt(log(node.visits) / float(node.children[action].visits))
-                if action in node.qvalues.keys() else float('+inf') for action in possible_actions
+            action: node.qvalues[action] + c * sqrt(log(node.visits) / float(node.children[action].visits))
+            if action in node.qvalues.keys() else float('+inf') for action in possible_actions
         }
         return max(array_qvalues, key=lambda k: array_qvalues[k])
